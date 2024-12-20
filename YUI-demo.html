@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YUI Tic Tac Toe</title>
+    <link rel="stylesheet" href="https://yui-s.yahooapis.com/3.18.1/build/cssgrids/cssgrids-min.css">
+    <style>
+
+        #board {
+            width: 300px;
+            height: 300px;
+            margin-left: 42%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            cursor: pointer;
+        }
+        #refresh {
+            display: block;
+
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #add8e6; /* Light blue */
+            color: white; /* White text */
+            border: none;
+            margin-left: 48%;
+            border-radius: 5px;
+            width: 90px;
+        }
+        #chart {
+            left: 5px;
+            width: 700px;
+            height: 400px;
+            margin-right: 20px;
+            margin-top: 20px;
+        }
+        #logTable {
+            margin-top: 20px;
+            border-collapse: collapse;
+            margin-left: 55%;
+            width: 300px;
+        }
+        #logTable th, #logTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        #logTable th {
+            background-color: #f2f2f2;
+            text-align: left;
+        }
+        .bottom-container {
+            display: flex;
+            justify-content: space-between;
+            width: 920px; /* Adjust based on the total width of chart and table */
+        }
+    </style>
+</head>
+<body>
+    <div id="board"></div>
+    <button id="refresh">Replay</button>
+    <div class="bottom-container">
+        <canvas id="chart"></canvas>
+        <table id="logTable">
+            <thead>
+                <tr>
+                    <th>Index</th>
+                    <th>Player</th>
+                    <th>Coordinate</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script src="https://yui-s.yahooapis.com/3.18.1/build/yui/yui-min.js"></script>
+    <script>
+        YUI().use('node', 'event', function(Y) {
+            const board = Y.one('#board');
+            const logTable = Y.one('#logTable tbody');
+            const chartCanvas = document.getElementById('chart');
+            const ctx = chartCanvas.getContext('2d');
+            let currentPlayer = 'X';
+            const cells = Array(9).fill(null);
+            const xMoves = Array(9).fill(0);
+            const oMoves = Array(9).fill(0);
+            let moveIndex = 0;
+
+            function createBoard() {
+                for (let i = 0; i < 9; i++) {
+                    const cell = Y.Node.create('<div class="cell"></div>');
+                    cell.on('click', () => handleCellClick(i, cell));
+                    board.append(cell);
+                }
+            }
+
+            function handleCellClick(index, cell) {
+                if (cells[index] || checkWinner()) return;
+                cells[index] = currentPlayer;
+                cell.setHTML(currentPlayer);
+                logMove(currentPlayer, index);
+                updateChart();
+                if (checkWinner()) {
+                    setTimeout(() => alert(currentPlayer + ' wins!'), 100);
+                } else {
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                }
+            }
+
+            function logMove(player, index) {
+                const time = new Date().toLocaleTimeString();
+                const row = `<tr><td>${++moveIndex}</td><td>${player}</td><td>${index}</td><td>${time}</td></tr>`;
+                logTable.append(row);
+                if (player === 'X') xMoves[index]++;
+                else oMoves[index]++;
+            }
+
+            function updateChart() {
+                ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+
+                // Draw axes
+                ctx.strokeStyle = 'black';
+                ctx.beginPath();
+                ctx.moveTo(50, chartCanvas.height - 30);
+                ctx.lineTo(chartCanvas.width - 10, chartCanvas.height - 30);
+                ctx.moveTo(50, chartCanvas.height - 30);
+                ctx.lineTo(50, 10);
+                ctx.stroke();
+
+                // Draw labels
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.fillText('Position', chartCanvas.width / 2, chartCanvas.height - 5);
+                ctx.fillText('Times', 50, 20);
+
+                // Draw X moves
+                ctx.strokeStyle = 'red';
+                ctx.beginPath();
+                ctx.moveTo(50, chartCanvas.height - 30 - xMoves[0] * 20);
+                for (let i = 1; i < 9; i++) {
+                    ctx.lineTo(50 + i * ((chartCanvas.width - 60) / 8), chartCanvas.height - 30 - xMoves[i] * 20);
+                }
+                ctx.stroke();
+
+                // Draw O moves
+                ctx.strokeStyle = 'blue';
+                ctx.beginPath();
+                ctx.moveTo(50, chartCanvas.height - 30 - oMoves[0] * 20);
+                for (let i = 1; i < 9; i++) {
+                    ctx.lineTo(50 + i * ((chartCanvas.width - 60) / 8), chartCanvas.height - 30 - oMoves[i] * 20);
+                }
+                ctx.stroke();
+
+                // Draw legend
+                ctx.fillStyle = 'red';
+                ctx.fillText('X', chartCanvas.width - 20, 20);
+                ctx.fillStyle = 'blue';
+                ctx.fillText('O', chartCanvas.width - 20, 40);
+
+                // Draw position labels
+                ctx.fillStyle = 'black';
+                for (let i = 0; i < 9; i++) {
+                    ctx.fillText(i, 50 + i * ((chartCanvas.width - 60) / 8), chartCanvas.height - 15);
+                }
+
+                // Draw move count labels
+                for (let i = 0; i <= 5; i++) {
+                    ctx.fillText(i, 30, chartCanvas.height - 30 - i * 20);
+                }
+            }
+
+            function checkWinner() {
+                const winningCombinations = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                    [0, 4, 8], [2, 4, 6]             // diagonals
+                ];
+                return winningCombinations.some(combination => {
+                    const [a, b, c] = combination;
+                    return cells[a] && cells[a] === cells[b] && cells[a] === cells[c];
+                });
+            }
+
+            Y.one('#refresh').on('click', () => {
+                cells.fill(null);
+                board.all('.cell').setHTML('');
+                logTable.setHTML('');
+                currentPlayer = 'X';
+                moveIndex = 0;
+                //xMoves.fill(0);
+                //oMoves.fill(0);
+                //updateChart();
+            });
+
+            createBoard();
+            updateChart(); // Initialize chart
+        });
+    </script>
+</body>
+</html>
